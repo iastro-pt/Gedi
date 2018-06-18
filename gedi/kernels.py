@@ -458,35 +458,62 @@ class Matern52(kernel):
                 *_np.exp(-_np.sqrt(5)*f4/f2))
 
 
-#    def log_likelihood(self, a, y):
-#        """ Calculates the marginal log likelihood
-#
-#        Parameters:
-#            a = array with the scaling parameters
-#            y = values of the dependent variable (the measurements)
-#
-#        Returns:
-#            marginal log likelihood
-#        """
-#        K = self.compute_matrix(a)
-#
-#        try:
-#            L1 = cho_factor(K)
-#            sol = cho_solve(L1, y)
-#            n = y.size
-#            log_like = - 0.5*_np.dot(y, sol) \
-#                       - _np.sum(_np.log(_np.diag(L1[0]))) \
-#                       - n*0.5*_np.log(2*_np.pi)
-#        except LinAlgError:
-#            return -_np.inf
-##            K2=_np.linalg.inv(K)
-##            n = y.size
-##            log_like = -0.5* _np.dot(_np.dot(y.T,K2),y) \
-##                       -_np.sum(_np.log(_np.diag(K))) \
-##                       -n*0.5*_np.log(2*_np.pi) 
-#        return log_like
-#
-#    def minus_log_likelihood(self, a, y):
-#        return - self.log_likelihood(a, y)
+class RQP(kernel):
+    """
+        Definition of the product between the exponential sine squared kernel 
+    and the rational quadratic kernel that we called RQP kernel.
+
+        Important
+    The derivative should be in respect to log(parameter), since they are not
+    defined yet gradinet based optimization will not work with this kernel
+
+        Parameters
+    RQP_theta = amplitude of the kernel
+    RQP_l1 and RQP_l2 = characteristic lenght scales
+    RQP_a = alpha of the rational quadratic kernel
+    RQP_P = periodic repetitions of the kernel
+    """
+    def __init__(self, RQP_theta, RQP_l1, RQP_a, RQP_l2, RQP_P):
+        """
+        Because we are "overwriting" the function __init__
+        we use this weird super function
+        """
+        super(RQP, self).__init__(RQP_theta, RQP_l1, RQP_a, RQP_l2, RQP_P)
+        self.RQP_theta = RQP_theta
+        self.RQP_l1 = RQP_l1
+        self.RQP_a = RQP_a
+        self.RQP_l2 = RQP_l2
+        self.RQP_P = RQP_P  
+
+    def __call__(self, r):
+        f1 = self.RQP_theta**2
+        f2 = self.RQP_l1**2
+        f3 = (r)**2
+        f33 = _np.abs(r)
+        f4 = self.RQP_a
+        f5 = self.RQP_l2**2
+        f6 = self.RQP_P
+        return f1 * (1+(0.5*f3/(f4*f2)))**(-f4) * _np.exp((-2/f5) \
+                   * ((_np.sin(_np.pi*f33/f6))**2))
+
+    def drqp_dtheta(self,r):
+        """ Log-derivative in order to theta """
+        return None
+
+    def drqp_dl1(self,r):
+        """ Log-derivatives in order to l1 """
+        return None
+
+    def drqp_da(self,r):
+        """ Log-derivative in order to alpha """
+        return None
+
+    def drqp_dl2(self,r):
+        """ Log-derivatives in order to l2 """
+        return None
+
+    def drqp_dlP(self,r):
+        """ Log-derivatives in order to P """
+        return None
 
 ##### END

@@ -2,11 +2,11 @@
 import  numpy as _np
 
 ##### RV functions #####
-def RV_circular(P=365, K=0.1, T=0, gamma=0, t=None):
+def circular(P=365, K=0.1, T=0, gamma=0, t=None):
     """
-        RV_circular() simulates the radial velocity signal of a planet in a 
+        circular() simulates the radial velocity signal of a planet in a 
     circular orbit around a star.
-        The algorithm needs improvements since it is inefficient.
+        The algorithm needs improvements.
 
         Parameters:
     P = period in days
@@ -24,33 +24,38 @@ def RV_circular(P=365, K=0.1, T=0, gamma=0, t=None):
     	print('Time needed')
 
     RV = [K*_np.sin(2*_np.pi*x/P - T) + gamma for x in t]
-    RV = [x for x in RV] #m/s 
+    #RV = [x for x in RV] #m/s 
     return t, RV
 
 
-def RV_kepler(P=365, e=0, K=.1, T=0, gamma=0, w=_np.pi, t=None):
+def kepler(P=365, K=.1, e=0,  w=_np.pi, T=0, phi=None, gamma=0, t=None):
     """
-        RV_kepler() simulates the radial velocity signal of a planet in a 
+        kepler() simulates the radial velocity signal of a planet in a 
     keplerian orbit around a star.
 
         Parameters:
     P = period in days
-    e = eccentricity
     K = RV amplitude
-    gamma = constant system RV
-    T = zero phase
+    e = eccentricity
     w = longitude of the periastron
-    t = time
+    T = zero phase
+    phi = orbital phase
+    gamma = constant system RV
+    t = time of measurements
 
         Returns:
-    t = time
+    t = time of measurements
     RV = rv signal generated
     """
     if t is  None:
     	print('Time needed')
 
     #mean anomaly
-    mean_anom = [2*_np.pi*(x1-T)/P  for x1 in t]
+    if phi is None:
+        mean_anom = [2*_np.pi*(x1-T)/P  for x1 in t]
+    else:
+        T = t[0] - (P*phi)/(2.*_np.pi)
+        mean_anom = [2*_np.pi*(x1-T)/P  for x1 in t]
 
     #eccentric anomaly -> E0=M + e*sin(M) + 0.5*(e**2)*sin(2*M)
     E0 = [x + e*_np.sin(x)  + 0.5*(e**2)*_np.sin(2*x) for x in mean_anom]

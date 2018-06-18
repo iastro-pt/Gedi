@@ -100,28 +100,23 @@ def new_kernel(original_kernel,b):
     """
     if isinstance(original_kernel,_kernels.ExpSquared):
         return _kernels.ExpSquared(b[0],b[1])
-        
     elif isinstance(original_kernel,_kernels.ExpSineSquared):
         return _kernels.ExpSineSquared(b[0],b[1],b[2])
-        
     elif isinstance(original_kernel,_kernels.RatQuadratic):
         return _kernels.RatQuadratic(b[0],b[1],b[2])
-        
     elif isinstance(original_kernel,_kernels.Exponential):
         return _kernels.Exponential(b[0],b[1])
         
     elif isinstance(original_kernel,_kernels.Matern32):
         return _kernels.Matern32(b[0],b[1])
-        
     elif isinstance(original_kernel,_kernels.Matern52):
         return _kernels.Matern52(b[0],b[1])
-        
     elif isinstance(original_kernel,_kernels.WhiteNoise):
         return _kernels.WhiteNoise(b[0])
-        
     elif isinstance(original_kernel,_kernels.QuasiPeriodic):
         return _kernels.QuasiPeriodic(b[0],b[1],b[2],b[3])
-        
+    elif isinstance(original_kernel,_kernels.RQP):
+        return _kernels.RQP(b[0],b[1],b[2],b[3],b[4])
     elif isinstance(original_kernel,_kernels.Sum):
         k1_params = []
         for i, e in enumerate(original_kernel.k1.pars):
@@ -535,11 +530,23 @@ def compute_kernel(kernel, x, new_x, y, yerr):
         Returns
     y_mean,y_std = mean, standard deviation
     """
-    K = build_matrix(kernel, x, yerr)
-    L1 = _cho_factor(K)
-    sol = _cho_solve(L1, y)
+    if isinstance(kernel, _kernels.Sum):
+        if isinstance(kernel.k2, _kernels.WhiteNoise):
+            WN_pars = kernel.k2.pars[0]**2
+            kernel = kernel.k1
+            K = build_matrix(kernel, x, yerr) 
+            K = K + WN_pars*_np.diag(_np.diag(K))
+            L1 = _cho_factor(K)
+        else:
+            K = build_matrix(kernel, x, yerr)
+            L1 = _cho_factor(K)
 
-    kfinal=K
+    else:
+        K = build_matrix(kernel, x, yerr)
+        L1 = _cho_factor(K)
+
+    sol = _cho_solve(L1, y)
+    kfinal = K
 
     new_r = new_x[:, None] - x[None, :]
     new_lines = kernel(new_r)
