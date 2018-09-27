@@ -11,6 +11,9 @@ def build_matrix(kern, x, yerr):
     """
         build_matrix() creates the covariance matrix
 
+        The Linear kernel will not work here, another solution needs
+    to be found for it
+
         Parameters
     kern = kernel in use
     x = range of values of the independent variable (usually time)
@@ -516,7 +519,9 @@ def compute_kernel(kernel, x, new_x, y, yerr):
     """
         compute_kenrel() makes the necessary calculations to allow the user to 
     create pretty graphics in the end, the ones that includes the mean and 
-    standard deviation. 
+    standard deviation.
+    
+        I'm not sure if multiplication will work properly
 
         Parameters
     kernel = kernel in use
@@ -530,12 +535,37 @@ def compute_kernel(kernel, x, new_x, y, yerr):
         Returns
     y_mean,y_std = mean, standard deviation
     """
+    #To deal with the white noise problem in sums
     if isinstance(kernel, _kernels.Sum):
         if isinstance(kernel.k2, _kernels.WhiteNoise):
             WN_pars = kernel.k2.pars[0]**2
             kernel = kernel.k1
             K = build_matrix(kernel, x, yerr) 
             K = K + WN_pars*_np.diag(_np.diag(K))
+            L1 = _cho_factor(K)
+        elif isinstance(kernel.k1, _kernels.WhiteNoise):
+            WN_pars = kernel.k1.pars[0]**2
+            kernel = kernel.k2
+            K = build_matrix(kernel, x, yerr) 
+            K = K + WN_pars*_np.diag(_np.diag(K))
+            L1 = _cho_factor(K)
+        else:
+            K = build_matrix(kernel, x, yerr)
+            L1 = _cho_factor(K)
+
+    #To deal with the white noise problem in multiplications
+    if isinstance(kernel, _kernels.Product):
+        if isinstance(kernel.k2, _kernels.WhiteNoise):
+            WN_pars = kernel.k2.pars[0]**2
+            kernel = kernel.k1
+            K = build_matrix(kernel, x, yerr) 
+            K = _np.dot(K, WN_pars*_np.diag(_np.diag(K)))
+            L1 = _cho_factor(K)
+        if isinstance(kernel.k1, _kernels.WhiteNoise):
+            WN_pars = kernel.k1.pars[0]**2
+            kernel = kernel.k2
+            K = build_matrix(kernel, x, yerr) 
+            K = _np.dot(K, WN_pars*_np.diag(_np.diag(K)))
             L1 = _cho_factor(K)
         else:
             K = build_matrix(kernel, x, yerr)
@@ -554,6 +584,7 @@ def compute_kernel(kernel, x, new_x, y, yerr):
 
     new_r = new_x[:,None] - new_x[None,:]
     new_columns = kernel(new_r)
+    print('K =', new_columns)
     kcolumns = _np.vstack([new_lines.T, new_columns])
     kfinal = _np.hstack([kfinal, kcolumns])
 
